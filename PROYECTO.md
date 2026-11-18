@@ -10,8 +10,13 @@
 
 Herramienta de optimización de Windows para después de formatear, basada en **WinUtil** (ChrisTitusTech/winutil), que deja la PC lista **en una sola ejecución**: se aplica un perfil único de forma automática, en fases y con reinicios, sin intervención.
 
-- Inspiración del flujo: **WinSux** (FR33THYFR33THY/WinSux), que hace todo "en un clic" con fases y reinicios. Del flujo se toma la idea; de su contenido, solo lo que diga este archivo.
-- **Fuente de las recomendaciones:** el video de Chris Titus https://youtu.be/yKydZFJRzMk. Todo lo que el video recomienda viene **marcado por defecto** en el perfil, con una única excepción: los ítems de seguridad (§7), que quedan como opción.
+- Inspiración del flujo: **WinSux** (FR33THYFR33THY/WinSux), que hace todo "en un clic" con fases y reinicios.
+- **Fuentes de las recomendaciones (las tres arman el perfil):**
+  1. el video de Chris Titus https://youtu.be/yKydZFJRzMk;
+  2. **WinSux** (FR33THYFR33THY/WinSux);
+  3. **Ultimate** (FR33THYFR33THY/Ultimate).
+
+  Todo lo que recomiendan viene **marcado por defecto** en el perfil, con una única excepción: los ítems de seguridad (§7), que quedan como opción. Cómo se adapta lo que no se puede copiar tal cual está en §6.4.
 
 Nombre de la herramienta: `<NOMBRE>` (pendiente, ver §12).
 
@@ -20,7 +25,7 @@ Nombre de la herramienta: `<NOMBRE>` (pendiente, ver §12).
 ## 2. Principios (no negociables)
 
 1. **Un solo perfil.** No hay presets alternativos. El perfil (`config/perfil.json`) es lo recomendado y viene marcado; el resto del catálogo queda disponible, desmarcado.
-2. **Lo del video va por defecto**, salvo seguridad. Si el video recomienda algo de la lista de §7, ese ítem no se marca: se ofrece en la pantalla de Seguridad.
+2. **Lo del video, WinSux y Ultimate va por defecto**, salvo seguridad. Si una fuente recomienda algo de la lista de §7, ese ítem no se marca: se ofrece en la pantalla de Seguridad.
 3. **Seguridad solo por elección explícita.** Ningún ítem de §7 viene marcado. Cada uno requiere confirmación.
 4. **Todo reversible.** Cada cambio tiene su forma de deshacer (`UndoScript`, `OriginalValue`, `OriginalType`). Si algo no se puede deshacer, se aclara en la descripción.
 5. **Punto de restauración primero.** Antes de cualquier cambio: punto de restauración + backup (`reg export`) de las claves que se van a tocar.
@@ -28,6 +33,8 @@ Nombre de la herramienta: `<NOMBRE>` (pendiente, ver §12).
 7. **Nunca dejar la PC trabada en modo seguro.** Ver §5.3.
 8. **Transparencia.** El `.ps1` publicado se compila con GitHub Actions desde el código del repo, sin envoltorios en Base64, y cada release publica su SHA256.
 9. **Sincronizable con WinUtil.** El código propio va en archivos nuevos; los archivos de WinUtil se tocan lo mínimo (§3).
+10. **Hardware primero.** Un tweak que es para un hardware específico lleva el campo `Condicion` (§6.2) y solo se aplica si coincide con el hardware elegido o detectado (para la GPU, el selector de §5.4).
+11. **Prioridad de fuentes: WinUtil > WinSux > Ultimate.** De WinSux y Ultimate se agrega solo lo que WinUtil no tiene. Si dos fuentes escriben la misma clave con valores distintos, gana la de mayor prioridad; el caso queda anotado en la tabla de conflictos (§6.5), que es informativa.
 
 ---
 
@@ -46,12 +53,15 @@ config/
   tweaksextra.json                  tweaks nuevos, mismo esquema que tweaks.json
   seguridad.json                    (etapa 7) ítems opcionales de §7
 functions/
+  private/Merge-WinUtilTweaksExtra.ps1  fusiona tweaksextra.json en $sync.configs.tweaks
   private/Express/*.ps1             motor de fases (estado, retoma, modo seguro, reporte)
   public/Invoke-WPFExpress*.ps1     entradas públicas del Modo Express
 xaml/                               pestaña Express y pantalla de Seguridad (etapa 4)
 proyecto/                           documentación del fork (NO se compila)
   README.md                         índice de esta carpeta
   video-recomendaciones.md          tabla de recomendaciones del video (etapa 1)
+  winsux-ultimate.md                tabla de acciones de WinSux y Ultimate (etapa 1b)
+  conflictos.md                     claves que dos fuentes escriben distinto (etapa 1b)
   fuentes/                          transcripciones y material bajado (NO se sube a git)
 ```
 
@@ -62,7 +72,8 @@ proyecto/                           documentación del fork (NO se compila)
 - `pester/configs.Tests.ps1` exige que todo `config/*.json` sea JSON válido. Mantenerlo así en todo momento.
 - `docs/` es el sitio web de WinUtil (Astro). La documentación propia va en `proyecto/`, no en `docs/`.
 - `proyecto/fuentes/` se excluye localmente con `.git/info/exclude` (no tocar el `.gitignore` de WinUtil). Las transcripciones no se suben al repo.
-- Los tweaks de `tweaksextra.json` necesitan un único punto de enganche que los fusione en `$sync.configs.tweaks` al iniciar, **antes** de que se generen los controles de la interfaz. Debe ser un cambio chico y comentado.
+- Los tweaks de `tweaksextra.json` se fusionan en `$sync.configs.tweaks` con `Merge-WinUtilTweaksExtra` (`functions/private/Merge-WinUtilTweaksExtra.ps1`). Se llama una sola vez en `scripts/main.ps1`, justo después de cargar los configs: **antes** de que `-Config`/`-Preset` validen los IDs y antes de que se generen los controles de la interfaz. Un ID que ya existe en `tweaks.json` no se pisa: se salta con un aviso en el log.
+- `-Config` y `-Preset` solo aceptan IDs de selección (`WPFTweaks…`, `WPFToggle…`, `WPFFeature…`, `WPFInstall…`, `WPFAppx…`). Con `-Config`, un ID desconocido corta la ejecución (`Update-WinUtilSelections` tira "Unknown selection key"). Los botones de WinUtil (`WPFUpdatessecurity`, `WPFPanel…`, etc.) **no** pueden ir en `perfil.json`: si hace falta su efecto, se replica como tweak en `tweaksextra.json`.
 - Cuando un cambio en archivos de WinUtil sea inevitable, que sea mínimo y quede listado en §11.
 - En este equipo, la política de ejecución de PowerShell bloquea los scripts. Para compilar usar siempre `powershell -ExecutionPolicy Bypass -File .\Compile.ps1`, y para los tests `powershell -ExecutionPolicy Bypass -Command "..."`. Eso afecta solo a ese proceso. Nunca cambiar la política del sistema ni del usuario (`Set-ExecutionPolicy` con `-Scope LocalMachine` o `CurrentUser`).
 
@@ -87,7 +98,7 @@ proyecto/                           documentación del fork (NO se compila)
 | Fase | Contenido | ¿Reinicio? | Por defecto |
 |---|---|---|---|
 | 0. Preparación | Punto de restauración + `reg export` de las claves afectadas + guardar el estado inicial | No | Siempre |
-| 1. Base | Apps del perfil con winget (VC++ 2005–2022 x86/x64, DirectX, 7-Zip y las que recomiende el video) | No | Según perfil |
+| 1. Base | Apps del perfil con winget (VC++ 2005–2022 x86/x64, DirectX, 7-Zip y las que recomienden las fuentes) | No | Según perfil |
 | 2. Limpieza | Edge, AppX, features | No | Según perfil |
 | 3. Optimización | Tweaks y toggles del perfil (WinUtil + `tweaksextra.json`) | Sí | Según perfil |
 | 4. Seguridad (opcional) | Solo los ítems marcados en §7. Si incluye Defender, se agrega un arranque en modo seguro | Solo si hace falta | **Nada marcado** |
@@ -117,6 +128,8 @@ Antes de reiniciar en modo seguro (`bcdedit /set {current} safeboot minimal`):
 ### 5.4 Interfaz
 
 - Pestaña "Express": el perfil precargado y marcado, lista de fases, resumen y botón "Ejecutar". El usuario puede desmarcar cosas antes de ejecutar.
+- **Selector de GPU** en la pestaña Express (como el menú "5 Graphics" de Ultimate: NVIDIA, AMD, Intel). Arranca preseleccionado con la detección automática (`Win32_VideoController`) y el usuario lo puede cambiar. Los tweaks con `Condicion` de GPU (§6.2) y la fase 5 usan esa selección.
+- Sin ventana: se usa la detección automática, o el parámetro `-GPU NVIDIA|AMD|Intel` si se pasa (gana sobre la detección).
 - Pantalla "Seguridad" separada (§7), con advertencias claras.
 - Antes de ejecutar: resumen final con todo lo que se va a hacer y la cantidad de reinicios estimada.
 - Idioma: español e inglés. Se puede tomar la traducción de APBOptimizer (`config/es.json`, `config/localization.json`, licencia MIT, mantener el crédito).
@@ -127,8 +140,15 @@ Antes de reiniciar en modo seguro (`bcdedit /set {current} safeboot minimal`):
 
 ### 6.1 Cómo se arma `config/perfil.json`
 
-1. **Punto de partida (ya cargado):** el preset `Standard` de Chris Titus (de `config/preset.json`) + 7-Zip y VC++ 2015-2022. Es provisorio hasta procesar el video.
-2. **Video (etapa 1):** cada recomendación del video se registra en `proyecto/video-recomendaciones.md` y se clasifica en uno de estos destinos:
+El perfil es la suma de las tres fuentes de §1, todo marcado salvo seguridad (§7).
+
+1. **Punto de partida:** el preset `Standard` de Chris Titus (de `config/preset.json`) + 7-Zip y VC++ 2015-2022.
+2. **Video (etapa 1, hecha):** `proyecto/video-recomendaciones.md`.
+3. **WinSux y Ultimate (etapa 1b):** `proyecto/winsux-ultimate.md`, una fila por cada acción de `winsux.ps1`, `stepone.ps1`, `steptwo.ps1`, `reg.reg` y cada script de Ultimate. Columnas: fuente, qué hace, destino, ID de WinUtil si existe, condición de hardware y conflictos.
+   - Incluye **toda** la carpeta `5 Graphics` de Ultimate (driver clean e install, NVIDIA/AMD/Intel Settings, HDCP, P0 State, MSI Mode, DirectX, C++, HAGS), indicando para cada fila si va a la **fase 5** (drivers) o es un **tweak condicionado por GPU**.
+   - Los ajustes de energía de gráficos de `steptwo.ps1` (Intel, AMD, gráficos híbridos) también llevan `Condicion`.
+
+Cada recomendación se clasifica en uno de estos destinos:
 
 | Destino | Qué es | ¿Va en `perfil.json`? |
 |---|---|---|
@@ -136,43 +156,60 @@ Antes de reiniciar en modo seguro (`bcdedit /set {current} safeboot minimal`):
 | `nuevo` | No existe; se crea en `tweaksextra.json` (o como app en el catálogo) | **Sí**, cuando esté implementado |
 | `seguridad` | Está en la lista de §7 | **No**: va a la pantalla de Seguridad |
 | `manual` | No se puede automatizar (BIOS, panel de la GPU, hardware) | No: va a la checklist del reporte final |
-| `no aplica` | Opinión, contexto o algo que no es una acción | No |
+| `fuera` | Excluido por §6.4 | No |
+| `no aplica` | Opinión, contexto o algo que no es una acción (solo en la tabla del video) | No |
 
-3. Lo que el video **no** menciona queda en el catálogo, desmarcado.
-4. Si el video recomienda algo que en WinUtil está en `z__Advanced Tweaks - CAUTION` y **no** es de §7, igual va en el perfil (decisión del usuario: lo del video manda), pero su descripción debe decir claramente qué hace.
+4. Lo que **ninguna** de las tres fuentes recomienda queda en el catálogo, desmarcado.
+5. Si una fuente recomienda algo que en WinUtil está en `z__Advanced Tweaks - CAUTION` y **no** es de §7, igual va en el perfil (decisión del usuario: las fuentes mandan), pero su descripción debe decir claramente qué hace.
+6. Un ítem con `Condicion` (§6.2) va en el perfil marcado; el motor lo saltea si no coincide con el hardware.
+7. Un ítem de WinSux o Ultimate que WinUtil ya cubre (misma clave) no se agrega: queda el de WinUtil (§6.5).
+8. Decisiones de la revisión del video (etapa 1): `WPFTweaksDeliveryOptimization` y `WPFFeaturesdotnet` van en el perfil; `WPFTweaksRazerBlock` y `WPFWinUtilInstallPSProfile` quedan desmarcados; el botón `WPFUpdatessecurity` no se usa: su diferimiento se replica en `WPFTweaksWindowsUpdateDefer` (marcado) y su bloqueo de drivers en `WPFTweaksWindowsUpdateNoDrivers` (desmarcado), ambos en `tweaksextra.json`.
 
 ### 6.2 Campos propios en los tweaks nuevos
 
 En `tweaksextra.json`, además del esquema de WinUtil:
 - `Origen`: de dónde sale (ej. `"Video Chris Titus 12:34"`, `"WinSux reg.reg"`, `"Ultimate 6/26"`).
 - `Riesgo`: `bajo`, `medio` o `alto`, como información en la interfaz (no decide si va al perfil).
+- `Condicion` (opcional): el hardware que el tweak necesita, como `"<tipo>:<valor>"`. Ejemplos: `"GPU:NVIDIA"`, `"GPU:AMD"`, `"GPU:Intel"`, `"CPU:Intel"`, `"CPU:AMD"`, `"Equipo:Notebook"`, `"Equipo:Escritorio"`. La lista de valores se cierra en la etapa 1b. Para `GPU:` vale la selección del selector de GPU (§5.4: detección automática o `-GPU`); el resto lo detecta el motor en la fase 0. El tweak se aplica solo si coincide; si no, se saltea y se informa en el reporte. Un tweak sin `Condicion` se aplica en cualquier equipo.
 
-### 6.3 Otras fuentes (complementarias, sin marcar por defecto)
+### 6.3 Fuentes y su contenido
 
-1. **WinSux** (`WinSux/reg.reg`, unas 1.500 líneas, y las secciones de `steptwo.ps1`): separar en tweaks individuales agrupados por tema, con descripción en español e inglés y `OriginalValue`. Descartar lo que WinUtil ya cubre (comparar por clave de registro, no por nombre).
-2. **Ultimate** (FR33THYFR33THY/Ultimate):
+1. **WinSux** (`winsux.ps1`, `stepone.ps1`, `steptwo.ps1` y `reg.reg`, unas 1.500 líneas): separar en tweaks individuales agrupados por tema, con descripción en español e inglés y `OriginalValue`. Lo que WinUtil ya cubre se marca como `existente` (comparar por clave de registro, no por nombre).
+2. **Ultimate** (FR33THYFR33THY/Ultimate), cada script. Algunos ítems ya identificados:
    - ahorro de energía y "wake" en el Administrador de dispositivos (6/25) y en la placa de red (6/26);
    - sonido (6/23); Notepad (6/21); Panel de control (6/22);
    - HAGS (5/14); escalado (6/12);
    - write cache buffer flushing (6/28, con advertencia sobre cortes de luz);
    - MSI Mode (5/10), Timer Resolution (6/30; WinSux trae un servicio en `settimerresolutionservice.cs`), P0 State (5/9), ULPS (8/14), prioridades (8/10), memory compression (3/2), NVMe (8/19).
-3. **APBOptimizer** (OptiJuegos/APBOptimizer, MIT): modo guiado, traducción y tweaks extra. Revisar antes de traer.
+3. **APBOptimizer** (OptiJuegos/APBOptimizer, MIT): **no** es fuente del perfil. Aporta modo guiado, traducción y tweaks extra, que entran al catálogo desmarcados. Revisar antes de traer.
 
-Estos ítems entran al catálogo desmarcados. Solo pasan al perfil si el video los recomienda.
+Lo de WinSux y Ultimate que WinUtil no tiene entra al perfil marcado, salvo lo que sea `seguridad`, `manual` o `fuera`.
 
-### 6.4 Excluido (no implementar)
+### 6.4 Cómo se integra lo que no se puede copiar tal cual
 
-- Instaladores descargados desde releases de terceros (WinSux/Ultimate).
+| En la fuente | Cómo entra acá |
+|---|---|
+| Apps descargadas desde los releases de WinSux/Ultimate | Se instalan con **winget** desde la fuente oficial. Si no están en winget, la fila queda `manual`. |
+| Bloqueo de Windows Update apuntando `WUServer` a un dominio externo (Ultimate 2/5) | Opción de **Seguridad** (§7), apuntando a `127.0.0.1`. |
+| DDU automático sobre todos los drivers (audio, Intel, Realtek), como hace WinSux | **Solo GPU**, en la fase 5 y con elección explícita. |
+
+Excluido (destino `fuera`, no se implementa):
 - Política de ejecución `Unrestricted` global y abrir `.ps1` con doble clic (Ultimate `AllowScripts.cmd` e `IWR.ps1`).
-- Bloqueo de Windows Update apuntando `WUServer` a un dominio externo (Ultimate 2/5). Si hace falta, usar `127.0.0.1`.
 - Activación con MAS (Ultimate 3/4).
-- DDU automático sobre **todos** los drivers (audio, Intel, Realtek) como hace WinSux. En la fase 5, solo GPU y con elección explícita.
+
+### 6.5 Conflictos entre fuentes
+
+Prioridad: **WinUtil (incluye lo del video) > WinSux > Ultimate.**
+
+- De WinSux y Ultimate se agrega solo lo que WinUtil no tiene. Si escriben el mismo valor que WinUtil, no se duplica: queda el tweak de WinUtil.
+- Si dos fuentes escriben la misma clave de registro, servicio o configuración con valores distintos, por defecto gana la de mayor prioridad (si WinUtil la toca, queda el valor de WinUtil).
+- Cada uno de esos casos se anota en `proyecto/conflictos.md` (se crea en la etapa 1b) con la clave, el valor de cada fuente, qué hace cada uno y cuál ganó. La tabla es **informativa**: el usuario puede cambiar casos puntuales, y ese cambio queda anotado en la misma tabla.
 
 ---
 
 ## 7. Seguridad (siempre opcional)
 
-Esta es la **única excepción** a "lo del video va por defecto". Ningún ítem de esta lista viene marcado, aunque el video lo recomiende; en ese caso se indica en la pantalla ("recomendado en el video") pero la casilla arranca vacía.
+Esta es la **única excepción** a "lo de las fuentes va por defecto". Ningún ítem de esta lista viene marcado, aunque una fuente lo recomiende; en ese caso se indica en la pantalla (ej. "recomendado por WinSux") pero la casilla arranca vacía.
 
 - Vive en un archivo **separado** del script principal, para que Defender no marque la herramienta entera por contener código que lo desactiva.
 - Si se distribuye aparte, se descarga desde el release **de la misma versión** y se verifica contra un SHA256 fijado en el script principal antes de ejecutarlo. Si el hash no coincide, se aborta.
@@ -188,7 +225,7 @@ Esta es la **única excepción** a "lo del video va por defecto". Ningún ítem 
 | Lista de bloqueo de drivers vulnerables | |
 | UAC | |
 | Mitigaciones de CPU (Spectre/Meltdown) | WinUtil no lo tiene. APBOptimizer sí (`WPFTweaksDisableCPUMitigations`, MIT): revisar y adaptar. |
-| Desactivar o pausar Windows Update a largo plazo | Deja de recibir parches de seguridad. WinUtil tiene los botones `WPFUpdatesdisable` (desactivar), `WPFUpdatessecurity` (solo seguridad, sin riesgo: puede ir en el perfil) y `WPFUpdatesdefault` (volver al estado original). |
+| Desactivar o pausar Windows Update a largo plazo | Deja de recibir parches de seguridad. WinUtil tiene los botones `WPFUpdatesdisable` (desactivar) y `WPFUpdatesdefault` (volver al estado original). El bloqueo de Ultimate (2/5) entra acá apuntando `WUServer` a `127.0.0.1`, nunca a un dominio externo. El diferimiento sin riesgo (`WPFTweaksWindowsUpdateDefer`, en `tweaksextra.json`) no es de esta lista y va en el perfil. |
 | Firewall | |
 | BitLocker | WinUtil ya tiene `WPFTweaksDisableBitLocker`; reutilizar. Va acá aunque WinUtil lo tenga en "Essential Tweaks". |
 
@@ -237,11 +274,12 @@ Partir de `tools/autounattend.xml` de WinUtil.
 Cada etapa termina con sus pruebas pasando y un commit propio. No avanzar a la siguiente sin confirmar con el usuario.
 
 0. **Preparación del fork:** confirmar que compila y abre igual que upstream con los archivos de esta estructura. Agregar `proyecto/fuentes/` a `.git/info/exclude`.
-1. **Video:** bajar subtítulos y descripción (ver `proyecto/video-recomendaciones.md`), completar la tabla, y actualizar `perfil.json` con los ítems `existente`. Mostrarle la tabla al usuario antes de tocar `perfil.json`.
+1. **Video:** bajar subtítulos y descripción (ver `proyecto/video-recomendaciones.md`), completar la tabla, y actualizar `perfil.json` con los ítems `existente`. Mostrarle la tabla al usuario antes de tocar `perfil.json`. Incluye (adelantado desde la etapa 5) el punto de enganche de `tweaksextra.json` y los dos tweaks de Windows Update que reemplazan al botón `WPFUpdatessecurity`.
+1b. **WinSux y Ultimate:** clonar ambos repos en `proyecto/fuentes/` y armar `proyecto/winsux-ultimate.md` (§6.1) y `proyecto/conflictos.md` (§6.5). Mostrarle la tabla al usuario antes de tocar `perfil.json`.
 2. **Motor de fases** (sin interfaz): estado, retoma con tarea programada, reporte, fases 0, 1, 2 y 3 usando `Invoke-WinUtilAutoRun` con `perfil.json`. Probado en VM.
-3. **Ejecución Express sin ventana:** parámetro `-Express` que usa el perfil embebido (`$sync.configs.perfil`) o uno externo.
-4. **Interfaz Express** y resumen previo.
-5. **Catálogo:** punto de enganche de `tweaksextra.json`; implementar los ítems `nuevo` del video (estos entran al perfil) y después los de §6.3 (desmarcados), por tandas temáticas.
+3. **Ejecución Express sin ventana:** parámetro `-Express` que usa el perfil embebido (`$sync.configs.perfil`) o uno externo, y `-GPU NVIDIA|AMD|Intel` (si falta, detección automática).
+4. **Interfaz Express**, selector de GPU (§5.4) y resumen previo.
+5. **Catálogo:** implementar los ítems `nuevo` de las fuentes (entran al perfil), con su `Condicion` cuando corresponda, y después los de APBOptimizer (desmarcados), por tandas temáticas.
 6. **Modo seguro + seguro anti-bloqueo** (§5.3) y **fase 5 de drivers**.
 7. **Seguridad** (§7): `config/seguridad.json` o módulo aparte, y su pantalla.
 8. **Español** (tomado de APB) y diseño propio (logo, tema).
@@ -249,19 +287,24 @@ Cada etapa termina con sus pruebas pasando y un commit propio. No avanzar a la s
 
 Archivos de WinUtil modificados (mantener actualizada esta lista):
 - `CLAUDE.md`: se agregó `@PROYECTO.md`.
+- `scripts/main.ps1`: una llamada a `Merge-WinUtilTweaksExtra` después de cargar los configs (§3.2).
 
 ---
 
 ## 12. Decisiones
 
 Tomadas:
-- Un solo perfil. Lo que recomienda el video de Chris Titus va marcado por defecto.
+- Un solo perfil. Lo que recomiendan el video de Chris Titus, WinSux y Ultimate va marcado por defecto.
 - Seguridad (§7) siempre opcional y desmarcada.
+- Tweaks de un hardware específico: campo `Condicion`, se aplican solo si coincide el hardware. La GPU sale de un selector preseleccionado con la detección (o `-GPU` sin ventana).
+- Prioridad de fuentes WinUtil > WinSux > Ultimate; la tabla de conflictos es informativa (§6.5).
+- Revisión del video: ver §6.1, punto 8.
 
 Pendientes:
 - Nombre de la herramienta.
 - Hardware de referencia (GPU, CPU, notebook o escritorio), para la fase de drivers.
-- Navegador en la fase 1, si el video no recomienda uno.
+- Navegador en la fase 1, si ninguna fuente recomienda uno.
+- Equipos con dos GPU (gráficos híbridos, ej. Intel + NVIDIA): si el selector admite más de una GPU o una sola, y cómo se condicionan los ajustes híbridos de `steptwo.ps1`.
 - Si el módulo de seguridad se distribuye dentro del release o como descarga aparte.
 
 ---
