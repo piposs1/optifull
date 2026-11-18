@@ -1,0 +1,17 @@
+[
+  "WPFTweaksActivity",
+  "WPFTweaksConsumerFeatures",
+  "WPFTweaksDisableExplorerAutoDiscovery",
+  "WPFTweaksWPBT",
+  "WPFTweaksLocation",
+  "WPFTweaksServices",
+  "WPFTweaksTelemetry",
+  "WPFTweaksDeliveryOptimization",
+  "WPFTweaksDiskCleanup",
+  "WPFTweaksDeleteTempFiles",
+  "WPFTweaksEndTaskOnTaskbar",
+  "WPFTweaksRestorePoint",
+  "WPFInstall7zip",
+  "WPFInstallvc2015_32",
+  "WPFInstallvc2015_64"
+]
