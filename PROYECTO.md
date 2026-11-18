@@ -64,6 +64,7 @@ proyecto/                           documentación del fork (NO se compila)
 - `proyecto/fuentes/` se excluye localmente con `.git/info/exclude` (no tocar el `.gitignore` de WinUtil). Las transcripciones no se suben al repo.
 - Los tweaks de `tweaksextra.json` necesitan un único punto de enganche que los fusione en `$sync.configs.tweaks` al iniciar, **antes** de que se generen los controles de la interfaz. Debe ser un cambio chico y comentado.
 - Cuando un cambio en archivos de WinUtil sea inevitable, que sea mínimo y quede listado en §11.
+- En este equipo, la política de ejecución de PowerShell bloquea los scripts. Para compilar usar siempre `powershell -ExecutionPolicy Bypass -File .\Compile.ps1`, y para los tests `powershell -ExecutionPolicy Bypass -Command "..."`. Eso afecta solo a ese proceso. Nunca cambiar la política del sistema ni del usuario (`Set-ExecutionPolicy` con `-Scope LocalMachine` o `CurrentUser`).
 
 ---
 
