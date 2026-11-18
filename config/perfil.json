@@ -11,6 +11,8 @@
   "WPFTweaksDeleteTempFiles",
   "WPFTweaksEndTaskOnTaskbar",
   "WPFTweaksRestorePoint",
+  "WPFTweaksWindowsUpdateDefer",
+  "WPFFeaturesdotnet",
   "WPFInstall7zip",
   "WPFInstallvc2015_32",
   "WPFInstallvc2015_64"

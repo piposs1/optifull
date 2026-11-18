@@ -1,1 +1,94 @@
-{}
+{
+  "WPFTweaksWindowsUpdateDefer": {
+    "Content": "Windows Update - Defer Feature (365 days) and Quality (4 days) Updates",
+    "Description": "Delays feature updates by a year and quality/security updates by 4 days, so broken releases are usually pulled before they reach this PC, and only notifies when downloaded updates are ready to install. Same deferral as WinUtil's 'Security settings' button, without blocking drivers. These are Windows Update for Business policies, which Windows Home editions may ignore.",
+    "category": "Essential Tweaks",
+    "panel": "1",
+    "Origen": "Video Chris Titus 07:31 (botón Updates > Security settings)",
+    "Riesgo": "bajo",
+    "registry": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "DeferFeatureUpdates",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "DeferFeatureUpdatesPeriodInDays",
+        "Value": "365",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "DeferQualityUpdates",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "DeferQualityUpdatesPeriodInDays",
+        "Value": "4",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+        "Name": "AUOptions",
+        "Value": "3",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      }
+    ],
+    "link": "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+  },
+  "WPFTweaksWindowsUpdateNoDrivers": {
+    "Content": "Windows Update - Block Driver Updates",
+    "Description": "Stops Windows Update from installing or offering drivers and stops device metadata downloads, so drivers are only changed when you install them yourself. On a fresh install, run Windows Update once first or have your network and chipset drivers ready, or some devices may be left without a driver.",
+    "category": "Essential Tweaks",
+    "panel": "1",
+    "Origen": "Video Chris Titus 07:31 (botón Updates > Security settings)",
+    "Riesgo": "medio",
+    "registry": [
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+        "Name": "ExcludeWUDriversInQualityUpdate",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching",
+        "Name": "DontPromptForWindowsUpdate",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching",
+        "Name": "DontSearchWindowsUpdate",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching",
+        "Name": "DriverUpdateWizardWuSearchEnabled",
+        "Value": "0",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      },
+      {
+        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Device Metadata",
+        "Name": "PreventDeviceMetadataFromNetwork",
+        "Value": "1",
+        "Type": "DWord",
+        "OriginalValue": "<RemoveEntry>"
+      }
+    ],
+    "link": "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+  }
+}

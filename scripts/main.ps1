@@ -33,6 +33,9 @@ $sync.configs.appxHashtable = @{}
 $sync.configs.appx.PSObject.Properties | ForEach-Object {
     $sync.configs.appxHashtable[$_.Name] = $_.Value
 }
+
+# Fork: add config/tweaksextra.json to the tweaks before -Config validates keys and the UI is built
+Merge-WinUtilTweaksExtra
 $sync.preferences.theme = "Auto"
 $sync.preferences.packagemanager = "Winget"
 
