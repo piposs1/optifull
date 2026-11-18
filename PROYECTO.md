@@ -102,7 +102,7 @@ proyecto/                           documentación del fork (NO se compila)
 | 2. Limpieza | Edge, AppX, features | No | Según perfil |
 | 3. Optimización | Tweaks y toggles del perfil (WinUtil + `tweaksextra.json`) | Sí | Según perfil |
 | 4. Seguridad (opcional) | Solo los ítems marcados en §7. Si incluye Defender, se agrega un arranque en modo seguro | Solo si hace falta | **Nada marcado** |
-| 5. Drivers (opcional) | DDU en modo seguro + driver de GPU desde fuente oficial | Sí | No |
+| 5. Drivers (opcional) | DDU en modo seguro + driver de GPU desde fuente oficial. Por defecto solo la GPU dedicada; limpiar la integrada es una opción aparte (§5.4) | Sí | No |
 | 6. Cierre | Limpieza de temporales, reporte final, reinicio | Sí | Siempre |
 
 Las fases que no tienen nada seleccionado se saltean.
@@ -128,8 +128,12 @@ Antes de reiniciar en modo seguro (`bcdedit /set {current} safeboot minimal`):
 ### 5.4 Interfaz
 
 - Pestaña "Express": el perfil precargado y marcado, lista de fases, resumen y botón "Ejecutar". El usuario puede desmarcar cosas antes de ejecutar.
-- **Selector de GPU** en la pestaña Express (como el menú "5 Graphics" de Ultimate: NVIDIA, AMD, Intel). Arranca preseleccionado con la detección automática (`Win32_VideoController`) y el usuario lo puede cambiar. Los tweaks con `Condicion` de GPU (§6.2) y la fase 5 usan esa selección.
-- Sin ventana: se usa la detección automática, o el parámetro `-GPU NVIDIA|AMD|Intel` si se pasa (gana sobre la detección).
+- **Selector de GPU** en la pestaña Express, con las marcas del menú "5 Graphics" de Ultimate (NVIDIA, AMD, Intel), pero **de casillas**, no de una sola opción:
+  - detecta todas las GPU (`Win32_VideoController`) y deja marcadas las marcas detectadas; el usuario puede cambiarlas;
+  - se aplican los tweaks de cada marca marcada (`Condicion` `GPU:<marca>`, §6.2);
+  - los ajustes de gráficos híbridos de `steptwo.ps1` se aplican solo si hay **dos o más** GPU marcadas (`Condicion` `GPU:Hibrido`);
+  - fase 5: DDU limpia e instala por defecto **solo la GPU dedicada**. Limpiar también la integrada es una casilla aparte, desmarcada, con advertencia para notebooks (en una notebook la integrada suele manejar la pantalla interna). Cómo se distingue dedicada de integrada (ej. Intel Arc es dedicada) se define en la etapa 6.
+- Sin ventana: se usa la detección automática, o el parámetro `-GPU` si se pasa (gana sobre la detección). Acepta varias marcas: `-GPU NVIDIA`, `-GPU Intel,NVIDIA`.
 - Pantalla "Seguridad" separada (§7), con advertencias claras.
 - Antes de ejecutar: resumen final con todo lo que se va a hacer y la cantidad de reinicios estimada.
 - Idioma: español e inglés. Se puede tomar la traducción de APBOptimizer (`config/es.json`, `config/localization.json`, licencia MIT, mantener el crédito).
@@ -170,7 +174,7 @@ Cada recomendación se clasifica en uno de estos destinos:
 En `tweaksextra.json`, además del esquema de WinUtil:
 - `Origen`: de dónde sale (ej. `"Video Chris Titus 12:34"`, `"WinSux reg.reg"`, `"Ultimate 6/26"`).
 - `Riesgo`: `bajo`, `medio` o `alto`, como información en la interfaz (no decide si va al perfil).
-- `Condicion` (opcional): el hardware que el tweak necesita, como `"<tipo>:<valor>"`. Ejemplos: `"GPU:NVIDIA"`, `"GPU:AMD"`, `"GPU:Intel"`, `"CPU:Intel"`, `"CPU:AMD"`, `"Equipo:Notebook"`, `"Equipo:Escritorio"`. La lista de valores se cierra en la etapa 1b. Para `GPU:` vale la selección del selector de GPU (§5.4: detección automática o `-GPU`); el resto lo detecta el motor en la fase 0. El tweak se aplica solo si coincide; si no, se saltea y se informa en el reporte. Un tweak sin `Condicion` se aplica en cualquier equipo.
+- `Condicion` (opcional): el hardware que el tweak necesita, como `"<tipo>:<valor>"`. Ejemplos: `"GPU:NVIDIA"`, `"GPU:AMD"`, `"GPU:Intel"`, `"GPU:Hibrido"` (dos o más GPU marcadas), `"CPU:Intel"`, `"CPU:AMD"`, `"Equipo:Notebook"`, `"Equipo:Escritorio"`. La lista de valores se cierra en la etapa 1b. Para `GPU:` valen las marcas marcadas en el selector de GPU (§5.4: detección automática o `-GPU`); un tweak `GPU:<marca>` se aplica si esa marca está entre las marcadas; el resto lo detecta el motor en la fase 0. El tweak se aplica solo si coincide; si no, se saltea y se informa en el reporte. Un tweak sin `Condicion` se aplica en cualquier equipo.
 
 ### 6.3 Fuentes y su contenido
 
@@ -191,7 +195,7 @@ Lo de WinSux y Ultimate que WinUtil no tiene entra al perfil marcado, salvo lo q
 |---|---|
 | Apps descargadas desde los releases de WinSux/Ultimate | Se instalan con **winget** desde la fuente oficial. Si no están en winget, la fila queda `manual`. |
 | Bloqueo de Windows Update apuntando `WUServer` a un dominio externo (Ultimate 2/5) | Opción de **Seguridad** (§7), apuntando a `127.0.0.1`. |
-| DDU automático sobre todos los drivers (audio, Intel, Realtek), como hace WinSux | **Solo GPU**, en la fase 5 y con elección explícita. |
+| DDU automático sobre todos los drivers (audio, Intel, Realtek), como hace WinSux | **Solo GPU**, en la fase 5 y con elección explícita: por defecto solo la dedicada, la integrada como opción aparte (§5.4). |
 
 Excluido (destino `fuera`, no se implementa):
 - Política de ejecución `Unrestricted` global y abrir `.ps1` con doble clic (Ultimate `AllowScripts.cmd` e `IWR.ps1`).
@@ -277,7 +281,8 @@ Cada etapa termina con sus pruebas pasando y un commit propio. No avanzar a la s
 1. **Video:** bajar subtítulos y descripción (ver `proyecto/video-recomendaciones.md`), completar la tabla, y actualizar `perfil.json` con los ítems `existente`. Mostrarle la tabla al usuario antes de tocar `perfil.json`. Incluye (adelantado desde la etapa 5) el punto de enganche de `tweaksextra.json` y los dos tweaks de Windows Update que reemplazan al botón `WPFUpdatessecurity`.
 1b. **WinSux y Ultimate:** clonar ambos repos en `proyecto/fuentes/` y armar `proyecto/winsux-ultimate.md` (§6.1) y `proyecto/conflictos.md` (§6.5). Mostrarle la tabla al usuario antes de tocar `perfil.json`.
 2. **Motor de fases** (sin interfaz): estado, retoma con tarea programada, reporte, fases 0, 1, 2 y 3 usando `Invoke-WinUtilAutoRun` con `perfil.json`. Probado en VM.
-3. **Ejecución Express sin ventana:** parámetro `-Express` que usa el perfil embebido (`$sync.configs.perfil`) o uno externo, y `-GPU NVIDIA|AMD|Intel` (si falta, detección automática).
+   - La fase 0 detecta la **edición de Windows**. En Home, el reporte avisa que `WPFTweaksWindowsUpdateDefer` no tiene efecto (las políticas de Windows Update for Business son de Pro en adelante).
+3. **Ejecución Express sin ventana:** parámetro `-Express` que usa el perfil embebido (`$sync.configs.perfil`) o uno externo, y `-GPU` con una o varias marcas (`-GPU Intel,NVIDIA`; si falta, detección automática).
 4. **Interfaz Express**, selector de GPU (§5.4) y resumen previo.
 5. **Catálogo:** implementar los ítems `nuevo` de las fuentes (entran al perfil), con su `Condicion` cuando corresponda, y después los de APBOptimizer (desmarcados), por tandas temáticas.
 6. **Modo seguro + seguro anti-bloqueo** (§5.3) y **fase 5 de drivers**.
@@ -296,16 +301,15 @@ Archivos de WinUtil modificados (mantener actualizada esta lista):
 Tomadas:
 - Un solo perfil. Lo que recomiendan el video de Chris Titus, WinSux y Ultimate va marcado por defecto.
 - Seguridad (§7) siempre opcional y desmarcada.
-- Tweaks de un hardware específico: campo `Condicion`, se aplican solo si coincide el hardware. La GPU sale de un selector preseleccionado con la detección (o `-GPU` sin ventana).
+- Tweaks de un hardware específico: campo `Condicion`, se aplican solo si coincide el hardware.
+- GPU (§5.4): selector de casillas con todas las GPU detectadas marcadas; se aplican los ajustes de cada marca marcada, y los de gráficos híbridos solo con dos o más. Fase 5: DDU solo la dedicada por defecto; la integrada es opción aparte con advertencia para notebooks. Sin ventana, `-GPU` acepta varias marcas (`-GPU Intel,NVIDIA`).
 - Prioridad de fuentes WinUtil > WinSux > Ultimate; la tabla de conflictos es informativa (§6.5).
 - Revisión del video: ver §6.1, punto 8.
 
 Pendientes:
 - Nombre de la herramienta.
 - Hardware de referencia (GPU, CPU, notebook o escritorio), para la fase de drivers.
-- Navegador en la fase 1, si ninguna fuente recomienda uno.
-- Equipos con dos GPU (gráficos híbridos, ej. Intel + NVIDIA): si el selector admite más de una GPU o una sola, y cómo se condicionan los ajustes híbridos de `steptwo.ps1`.
-- Si el módulo de seguridad se distribuye dentro del release o como descarga aparte.
+- Navegador en la fase 1, si ninguna fuente recomienda uno.- Si el módulo de seguridad se distribuye dentro del release o como descarga aparte.
 
 ---
 

@@ -167,6 +167,33 @@ Describe "tweaksextra.json entries" {
         })
         $conflicts | Should -BeNullOrEmpty
     }
+
+    It "do not write a registry value that tweaks.json already writes (WinUtil has priority)" {
+        # PROYECTO.md §6.5: WinUtil > WinSux > Ultimate. A key WinUtil already writes is never
+        # duplicated, and by default WinUtil's value wins. A case the user decided to override goes
+        # in proyecto/conflictos.md and here, as "Path|Name".
+        $userApprovedOverrides = @()
+
+        $winUtilKeys = @{}
+        foreach ($tweak in (Read-ForkConfig "tweaks").PSObject.Properties) {
+            foreach ($registryEntry in @($tweak.Value.registry)) {
+                if ($null -eq $registryEntry) { continue }
+                $winUtilKeys["$($registryEntry.Path)|$($registryEntry.Name)"] = $tweak.Name
+            }
+        }
+
+        $duplicates = foreach ($tweak in (Read-ForkConfig "tweaksextra").PSObject.Properties) {
+            foreach ($registryEntry in @($tweak.Value.registry)) {
+                if ($null -eq $registryEntry) { continue }
+                $key = "$($registryEntry.Path)|$($registryEntry.Name)"
+                if ($winUtilKeys.ContainsKey($key) -and $userApprovedOverrides -notcontains $key) {
+                    "$($tweak.Name) writes $key, already written by $($winUtilKeys[$key])"
+                }
+            }
+        }
+
+        @($duplicates) | Should -BeNullOrEmpty
+    }
 }
 
 Describe "perfil.json" {

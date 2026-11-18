@@ -47,7 +47,7 @@
   },
   "WPFTweaksWindowsUpdateNoDrivers": {
     "Content": "Windows Update - Block Driver Updates",
-    "Description": "Stops Windows Update from installing or offering drivers and stops device metadata downloads, so drivers are only changed when you install them yourself. On a fresh install, run Windows Update once first or have your network and chipset drivers ready, or some devices may be left without a driver.",
+    "Description": "Stops Windows Update from installing or offering drivers, so drivers are only changed when you install them yourself. To also stop device companion apps and metadata downloads, use 'Prevent Device Companion Apps'. On a fresh install, run Windows Update once first or have your network and chipset drivers ready, or some devices may be left without a driver.",
     "category": "Essential Tweaks",
     "panel": "1",
     "Origen": "Video Chris Titus 07:31 (botón Updates > Security settings)",
@@ -78,13 +78,6 @@
         "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching",
         "Name": "DriverUpdateWizardWuSearchEnabled",
         "Value": "0",
-        "Type": "DWord",
-        "OriginalValue": "<RemoveEntry>"
-      },
-      {
-        "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Device Metadata",
-        "Name": "PreventDeviceMetadataFromNetwork",
-        "Value": "1",
         "Type": "DWord",
         "OriginalValue": "<RemoveEntry>"
       }
